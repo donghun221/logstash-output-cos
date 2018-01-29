@@ -309,7 +309,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   end
 
   def aws_service_endpoint(region)
-    { :s3_endpoint => "#{@bucket}.cos.ap-#{region}.myqcloud.com"}
+    { :s3_endpoint => "alpha-1255669336.cos.ap-guangzhou.myqcloud.com"}
   end
 
   def rotate_if_needed(prefixes)
