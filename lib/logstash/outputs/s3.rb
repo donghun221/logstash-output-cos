@@ -305,7 +305,17 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   end
 
   def bucket_resource
-    Aws::S3::Bucket.new(@bucket, full_options)
+    s3 = Aws::S3::Client.new(
+      :access_key_id => 'AKIDgFgFj4bSobJ2e8Lgq7JK9nFcsyESoVKB',
+      :secret_access_key => 'rX2MTlOvO3mVMwAKWlt8JWh9i0KZgE7E',
+      :region => 'guangzhou',
+      :endpoint => 'https://alpha-1255669336.cos.ap-guangzhou.myqcloud.com',
+      :force_path_style => true
+    )
+
+    resource = Aws::S3::Resource.new(s3: s3)
+    resource.bucket('alpha-1255669336') 
+    #Aws::S3::Bucket.new(@bucket, full_options)
   end
 
   def aws_service_endpoint(region)
