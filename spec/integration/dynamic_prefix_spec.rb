@@ -1,6 +1,6 @@
 # encoding: utf-8
 require_relative "../spec_helper"
-require "logstash/outputs/s3"
+require "logstash/outputs/cos"
 require "logstash/codecs/line"
 require "stud/temporary"
 
@@ -33,7 +33,7 @@ describe "Dynamic Prefix", :integration => true do
     end
 
     it "creates specific keys" do
-      re = Regexp.union(/^es1\/ruby\/ls.s3.sashimi/, /^es2\/java\/ls.s3.sashimi/)
+      re = Regexp.union(/^es1\/ruby\/ls.cos.sashimi/, /^es2\/java\/ls.cos.sashimi/)
 
       bucket_resource.objects(:prefix => sandbox) do |obj|
         expect(obj.key).to match(re)
@@ -66,7 +66,7 @@ describe "Dynamic Prefix", :integration => true do
     end
 
     it "convert them to underscore" do
-      re = Regexp.union(/^e_s1\/ruby\/ls.s3.sashimi/)
+      re = Regexp.union(/^e_s1\/ruby\/ls.cos.sashimi/)
 
       bucket_resource.objects(:prefix => sandbox) do |obj|
         expect(obj.key).to match(re)
@@ -85,7 +85,7 @@ describe "Dynamic Prefix", :integration => true do
     end
 
     it "creates dated path" do
-      re = /^#{sandbox}\/\d{4}-\d{2}-\d{1,2}\/ls\.s3\./
+      re = /^#{sandbox}\/\d{4}-\d{2}-\d{1,2}\/ls\.cos\./
       expect(bucket_resource.objects(:prefix => sandbox).first.key).to match(re)
     end
   end

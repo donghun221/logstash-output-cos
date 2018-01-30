@@ -1,10 +1,10 @@
 # encoding: utf-8
-require "logstash/outputs/s3/temporary_file_factory"
-require "logstash/outputs/s3/temporary_file"
+require "logstash/outputs/cos/temporary_file_factory"
+require "logstash/outputs/cos/temporary_file"
 require "stud/temporary"
 require "fileutils"
 
-describe LogStash::Outputs::S3::TemporaryFileFactory do
+describe LogStash::Outputs::COS::TemporaryFileFactory do
   let(:prefix) { "foobar" }
   let(:tags) { [] }
   let(:temporary_directory) { Stud::Temporary.pathname }
@@ -25,7 +25,7 @@ describe LogStash::Outputs::S3::TemporaryFileFactory do
     end
 
     it "create a temporary file when initialized" do
-      expect(subject.current).to be_kind_of(LogStash::Outputs::S3::TemporaryFile)
+      expect(subject.current).to be_kind_of(LogStash::Outputs::COS::TemporaryFile)
     end
 
     it "create a file in the right format" do

@@ -1,9 +1,9 @@
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
-require "logstash/outputs/s3/size_and_time_rotation_policy"
-require "logstash/outputs/s3/temporary_file"
+require "logstash/outputs/cos/size_and_time_rotation_policy"
+require "logstash/outputs/cos/temporary_file"
 
-describe LogStash::Outputs::S3::SizeAndTimeRotationPolicy do
+describe LogStash::Outputs::COS::SizeAndTimeRotationPolicy do
   let(:file_size) { 10 }
   let(:time_file) { 1 }
   subject { described_class.new(file_size, time_file) }
@@ -12,7 +12,7 @@ describe LogStash::Outputs::S3::SizeAndTimeRotationPolicy do
   let(:temporary_file) { Stud::Temporary.file }
   let(:name) { "foobar" }
   let(:content) { "hello" * 1000 }
-  let(:file) { LogStash::Outputs::S3::TemporaryFile.new(name, temporary_file, temporary_directory) }
+  let(:file) { LogStash::Outputs::COS::TemporaryFile.new(name, temporary_file, temporary_directory) }
 
   it "raises an exception if the `time_file` is set to 0" do
     expect { described_class.new(100, 0) }.to raise_error(LogStash::ConfigurationError, /time_file/)

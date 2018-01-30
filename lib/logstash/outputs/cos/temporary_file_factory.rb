@@ -7,7 +7,7 @@ require "forwardable"
 
 module LogStash
   module Outputs
-    class S3
+    class COS
       # Since the file can contains dynamic part, we have to handle a more local structure to
       # allow a nice recovery from a crash.
       #
@@ -64,7 +64,7 @@ module LogStash
         end
 
         def generate_name
-          filename = "ls.s3.#{SecureRandom.uuid}.#{current_time}"
+          filename = "ls.cos.#{SecureRandom.uuid}.#{current_time}"
 
           if tags.size > 0
             "#{filename}.tag_#{tags.join('.')}.part#{counter}.#{extension}"

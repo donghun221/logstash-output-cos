@@ -4,7 +4,7 @@ require "aws-sdk"
 
 module LogStash
   module Outputs
-    class S3
+    class COS
       class Uploader
         TIME_BEFORE_RETRYING_SECONDS = 1
         DEFAULT_THREADPOOL = Concurrent::ThreadPoolExecutor.new({

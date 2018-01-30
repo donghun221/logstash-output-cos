@@ -1,10 +1,10 @@
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
-require "logstash/outputs/s3/size_rotation_policy"
-require "logstash/outputs/s3/temporary_file"
+require "logstash/outputs/cos/size_rotation_policy"
+require "logstash/outputs/cos/temporary_file"
 require "fileutils"
 
-describe LogStash::Outputs::S3::SizeRotationPolicy do
+describe LogStash::Outputs::COS::SizeRotationPolicy do
   subject { described_class.new(size_file) }
 
   let(:temporary_directory) {  Stud::Temporary.directory }
@@ -12,7 +12,7 @@ describe LogStash::Outputs::S3::SizeRotationPolicy do
   let(:name) { "foobar" }
   let(:content) { "hello" * 1000 }
   let(:size_file) { 10 } # in bytes
-  let(:file) { LogStash::Outputs::S3::TemporaryFile.new(name, temporary_file, temporary_directory) }
+  let(:file) { LogStash::Outputs::COS::TemporaryFile.new(name, temporary_file, temporary_directory) }
 
   it "returns true if the size on disk is higher than the `size_file`" do
     file.write(content)

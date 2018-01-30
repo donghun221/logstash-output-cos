@@ -1,12 +1,12 @@
 # encoding: utf-8
-require "logstash/outputs/s3"
+require "logstash/outputs/cos"
 require "logstash/event"
 require "logstash/codecs/line"
 require "stud/temporary"
 
-describe LogStash::Outputs::S3 do
+describe LogStash::Outputs::COS do
   let(:prefix) { "super/%{server}" }
-  let(:region) { "us-east-1" }
+  let(:region) { "ap-guangzhou" }
   let(:bucket_name) { "mybucket" }
   let(:options) { { "region" => region,
                     "bucket" => bucket_name,
@@ -25,7 +25,7 @@ describe LogStash::Outputs::S3 do
 
   before do
     allow(subject).to receive(:bucket_resource).and_return(mock_bucket)
-    allow_any_instance_of(LogStash::Outputs::S3::WriteBucketPermissionValidator).to receive(:valid?).with(mock_bucket, subject.upload_options).and_return(true)
+    allow_any_instance_of(LogStash::Outputs::COS::WriteBucketPermissionValidator).to receive(:valid?).with(mock_bucket, subject.upload_options).and_return(true)
   end
 
   context "#register configuration validation" do
@@ -71,7 +71,7 @@ describe LogStash::Outputs::S3 do
         end
 
       context "when algorithm is configured" do
-        ["AES256", "aws:kms"].each do |sse|
+        ["AES256", "tencent:kms"].each do |sse|
           it "should return the configured SSE: #{sse}" do
             s3 = described_class.new(options.merge({ "server_side_encryption" => true, "server_side_encryption_algorithm" => sse }))
             expect(s3.upload_options).to include(:server_side_encryption => sse)
@@ -81,16 +81,16 @@ describe LogStash::Outputs::S3 do
 
       context "when using SSE with KMS and custom key" do
         it "should return the configured KMS key" do
-          s3 = described_class.new(options.merge({ "server_side_encryption" => true, "server_side_encryption_algorithm" => "aws:kms",  "ssekms_key_id" => "test"}))
-          expect(s3.upload_options).to include(:server_side_encryption => "aws:kms")
+          s3 = described_class.new(options.merge({ "server_side_encryption" => true, "server_side_encryption_algorithm" => "tencent:kms",  "ssekms_key_id" => "test"}))
+          expect(s3.upload_options).to include(:server_side_encryption => "tencent:kms")
           expect(s3.upload_options).to include(:ssekms_key_id => "test")
         end
       end
 
       context "when using SSE with KMS but no custom key" do
         it "should return the configured KMS key" do
-          s3 = described_class.new(options.merge({ "server_side_encryption" => true, "server_side_encryption_algorithm" => "aws:kms"}))
-          expect(s3.upload_options).to include(:server_side_encryption => "aws:kms")
+          s3 = described_class.new(options.merge({ "server_side_encryption" => true, "server_side_encryption_algorithm" => "tencent:kms"}))
+          expect(s3.upload_options).to include(:server_side_encryption => "tencent:kms")
           expect(s3.upload_options).to include(:ssekms_key_id => nil)
         end
       end
@@ -106,8 +106,8 @@ describe LogStash::Outputs::S3 do
 
     describe "Storage Class" do
       context "when configured" do
-        ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA"].each do |storage_class|
-          it "should return the configured storage class: #{storage_class}" do
+        ["STANDARD", "STANDARD_IA"].each do |storage_class|
+          it "should return the  stconfiguredorage class: #{storage_class}" do
             s3 = described_class.new(options.merge({ "storage_class" => storage_class }))
             expect(s3.upload_options).to include(:storage_class => storage_class)
           end
@@ -133,7 +133,7 @@ describe LogStash::Outputs::S3 do
       end
 
       it "raises an error if we cannot write to the directory" do
-        expect(LogStash::Outputs::S3::WritableDirectoryValidator).to receive(:valid?).with(temporary_directory).and_return(false)
+        expect(LogStash::Outputs::COS::WritableDirectoryValidator).to receive(:valid?).with(temporary_directory).and_return(false)
         expect { subject.register }.to raise_error(LogStash::ConfigurationError)
       end
     end
@@ -145,7 +145,7 @@ describe LogStash::Outputs::S3 do
 
     it "allow to not validate credentials" do
       s3 = described_class.new(options.merge({"validate_credentials_on_root_bucket" => false}))
-      expect_any_instance_of(LogStash::Outputs::S3::WriteBucketPermissionValidator).not_to receive(:valid?).with(any_args)
+      expect_any_instance_of(LogStash::Outputs::COS::WriteBucketPermissionValidator).not_to receive(:valid?).with(any_args)
       s3.register
     end
   end

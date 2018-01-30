@@ -1,11 +1,11 @@
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
-require "logstash/outputs/s3/temporary_file"
+require "logstash/outputs/cos/temporary_file"
 require "stud/temporary"
 require "fileutils"
 require "securerandom"
 
-describe LogStash::Outputs::S3::TemporaryFile do
+describe LogStash::Outputs::COS::TemporaryFile do
   let(:content) { "hello world" }
   let(:key) { "foo" }
   let(:uuid) { SecureRandom.uuid }

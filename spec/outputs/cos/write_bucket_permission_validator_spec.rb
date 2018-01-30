@@ -1,9 +1,9 @@
 # encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
-require "logstash/outputs/s3/write_bucket_permission_validator"
+require "logstash/outputs/cos/write_bucket_permission_validator"
 require "aws-sdk"
 
-describe LogStash::Outputs::S3::WriteBucketPermissionValidator do
+describe LogStash::Outputs::COS::WriteBucketPermissionValidator do
   let(:logger) { spy(:logger ) }
   let(:bucket_name) { "foobar" }
   let(:obj) { double("s3_object") }

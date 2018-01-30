@@ -12,27 +12,27 @@ require "fileutils"
 require "set"
 require "pathname"
 require "aws-sdk"
-require "logstash/outputs/s3/patch"
+require "logstash/outputs/cos/patch"
 
 Aws.eager_autoload!
 
 # INFORMATION:
 #
-# This plugin batches and uploads logstash events into Amazon Simple Storage Service (Amazon S3).
+# This plugin batches and uploads logstash events into Tencent Cloud Object Storage (Tencent COS).
 #
 # Requirements:
-# * Amazon S3 Bucket and S3 Access Permissions (Typically access_key_id and secret_access_key)
-# * S3 PutObject permission
+# * Tencent COS Bucket and COS Access Permissions (Typically access_key_id and secret_access_key)
+# * COS PutObject permission
 #
-# S3 outputs create temporary files into the OS' temporary directory, you can specify where to save them using the `temporary_directory` option.
+# COS outputs create temporary files into the OS' temporary directory, you can specify where to save them using the `temporary_directory` option.
 #
-# S3 output files have the following format
+# COS output files have the following format
 #
-# ls.s3.312bc026-2f5d-49bc-ae9f-5940cf4ad9a6.2013-04-18T10.00.tag_hello.part0.txt
+# ls.cos.312bc026-2f5d-49bc-ae9f-5940cf4ad9a6.2013-04-18T10.00.tag_hello.part0.txt
 #
 #
 # |=======
-# | ls.s3 | indicate logstash plugin s3 |
+# | ls.cos | indicate logstash plugin cos |
 # | 312bc026-2f5d-49bc-ae9f-5940cf4ad9a6 | a new, random uuid per file. |
 # | 2013-04-18T10.00 | represents the time whenever you specify time_file. |
 # | tag_hello | this indicates the event's tag. |
@@ -45,7 +45,7 @@ Aws.eager_autoload!
 ##[Note regarding time_file and size_file] :
 #
 ## Both time_file and size_file settings can trigger a log "file rotation"
-## A log rotation pushes the current log "part" to s3 and deleted from local temporary storage.
+## A log rotation pushes the current log "part" to cos and deleted from local temporary storage.
 #
 ## If you specify BOTH size_file and time_file then it will create file for each tag (if specified).
 ## When EITHER time_file minutes have elapsed OR log file size > size_file, a log rotation is triggered.
@@ -64,10 +64,10 @@ Aws.eager_autoload!
 # This is an example of logstash config:
 # [source,ruby]
 # output {
-#    s3{
+#    cos{
 #      access_key_id => "crazy_key"             (required)
 #      secret_access_key => "monkey_access_key" (required)
-#      region => "eu-west-1"                    (optional, default = "us-east-1")
+#      region => "ap-guangzhou"                    (optional, default = "ap-guangzhou")
 #      bucket => "your_bucket"                  (required)
 #      size_file => 2048                        (optional) - Bytes
 #      time_file => 5                           (optional) - Minutes
@@ -75,17 +75,17 @@ Aws.eager_autoload!
 #      canned_acl => "private"                  (optional. Options are "private", "public-read", "public-read-write", "authenticated-read". Defaults to "private" )
 #    }
 #
-class LogStash::Outputs::S3 < LogStash::Outputs::Base
-  require "logstash/outputs/s3/writable_directory_validator"
-  require "logstash/outputs/s3/path_validator"
-  require "logstash/outputs/s3/write_bucket_permission_validator"
-  require "logstash/outputs/s3/size_rotation_policy"
-  require "logstash/outputs/s3/time_rotation_policy"
-  require "logstash/outputs/s3/size_and_time_rotation_policy"
-  require "logstash/outputs/s3/temporary_file"
-  require "logstash/outputs/s3/temporary_file_factory"
-  require "logstash/outputs/s3/uploader"
-  require "logstash/outputs/s3/file_repository"
+class LogStash::Outputs::COS < LogStash::Outputs::Base
+  require "logstash/outputs/cos/writable_directory_validator"
+  require "logstash/outputs/cos/path_validator"
+  require "logstash/outputs/cos/write_bucket_permission_validator"
+  require "logstash/outputs/cos/size_rotation_policy"
+  require "logstash/outputs/cos/time_rotation_policy"
+  require "logstash/outputs/cos/size_and_time_rotation_policy"
+  require "logstash/outputs/cos/temporary_file"
+  require "logstash/outputs/cos/temporary_file_factory"
+  require "logstash/outputs/cos/uploader"
+  require "logstash/outputs/cos/file_repository"
 
   include LogStash::PluginMixins::AwsConfig::V2
 
@@ -98,12 +98,12 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
                                                                  })
 
 
-  config_name "s3"
+  config_name "cos"
   default :codec, "line"
 
   concurrency :shared
 
-  # S3 bucket
+  # COS bucket
   config :bucket, :validate => :string, :required => true
 
   # Set the size of file in bytes, this means that files on bucket when have dimension > file_size, they are stored in two or more file.
@@ -127,38 +127,36 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   config :canned_acl, :validate => ["private", "public-read", "public-read-write", "authenticated-read"],
          :default => "private"
 
-  # Specifies wether or not to use S3's server side encryption. Defaults to no encryption.
+  # Specifies wether or not to use COS's server side encryption. Defaults to no encryption.
   config :server_side_encryption, :validate => :boolean, :default => false
 
   # Specifies what type of encryption to use when SSE is enabled.
-  config :server_side_encryption_algorithm, :validate => ["AES256", "aws:kms"], :default => "AES256"
+  config :server_side_encryption_algorithm, :validate => ["AES256", "tencent:kms"], :default => "AES256"
 
   # The key to use when specified along with server_side_encryption => aws:kms.
-  # If server_side_encryption => aws:kms is set but this is not default KMS key is used.
-  # http://docs.aws.amazon.com/AmazonS3/latest/dev/UsingKMSEncryption.html
+  # If server_side_encryption => tencent:kms is set but this is not default KMS key is used.
   config :ssekms_key_id, :validate => :string
 
-  # Specifies what S3 storage class to use when uploading the file.
+  # Specifies what COS storage class to use when uploading the file.
   # More information about the different storage classes can be found:
-  # http://docs.aws.amazon.com/AmazonS3/latest/dev/storage-class-intro.html
   # Defaults to STANDARD.
-  config :storage_class, :validate => ["STANDARD", "REDUCED_REDUNDANCY", "STANDARD_IA"], :default => "STANDARD"
+  config :storage_class, :validate => ["STANDARD", "STANDARD_IA"], :default => "STANDARD"
 
-  # Set the directory where logstash will store the tmp files before sending it to S3
+  # Set the directory where logstash will store the tmp files before sending it to COS
   # default to the current OS temporary directory in linux /tmp/logstash
   config :temporary_directory, :validate => :string, :default => File.join(Dir.tmpdir, "logstash")
 
-  # Specify a prefix to the uploaded filename, this can simulate directories on S3.  Prefix does not require leading slash.
+  # Specify a prefix to the uploaded filename, this can simulate directories on COS.  Prefix does not require leading slash.
   # This option support string interpolation, be warned this can created a lot of temporary local files.
   config :prefix, :validate => :string, :default => ''
 
-  # Specify how many workers to use to upload the files to S3
+  # Specify how many workers to use to upload the files to COS
   config :upload_workers_count, :validate => :number, :default => (Concurrent.processor_count * 0.5).ceil
 
   # Number of items we can keep in the local queue before uploading them
   config :upload_queue_size, :validate => :number, :default => 2 * (Concurrent.processor_count * 0.25).ceil
 
-  # The version of the S3 signature hash to use. Normally uses the internal client default, can be explicitly
+  # The version of the COS signature hash to use. Normally uses the internal client default, can be explicitly
   # specified here
   config :signature_version, :validate => ['v2', 'v4']
 
@@ -168,20 +166,22 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
   # tags => ["elasticsearch", "logstash", "kibana"]
   #
   # Will generate this file:
-  # "ls.s3.logstash.local.2015-01-01T00.00.tag_elasticsearch.logstash.kibana.part0.txt"
+  # "ls.cos.logstash.local.2015-01-01T00.00.tag_elasticsearch.logstash.kibana.part0.txt"
   #
   config :tags, :validate => :array, :default => []
 
   # Specify the content encoding. Supports ("gzip"). Defaults to "none"
   config :encoding, :validate => ["none", "gzip"], :default => "none"
 
-  # Define the strategy to use to decide when we need to rotate the file and push it to S3,
+  # Define the strategy to use to decide when we need to rotate the file and push it to COS,
   # The default strategy is to check for both size and time, the first one to match will rotate the file.
   config :rotation_strategy, :validate => ["size_and_time", "size", "time"], :default => "size_and_time"
 
   # The common use case is to define permission on the root bucket and give Logstash full access to write its logs.
   # In some circonstances you need finer grained permission on subfolder, this allow you to disable the check at startup.
   config :validate_credentials_on_root_bucket, :validate => :boolean, :default => true
+
+  config :region, :validate => :string, :default => 'ap-guangzhou'
 
   def register
     # I've move the validation of the items into custom classes
@@ -202,7 +202,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
     end
 
     if @time_file.nil? && @size_file.nil? || @size_file == 0 && @time_file == 0
-      raise LogStash::ConfigurationError, "The S3 plugin must have at least one of time_file or size_file set to a value greater than 0"
+      raise LogStash::ConfigurationError, "The COS plugin must have at least one of time_file or size_file set to a value greater than 0"
     end
 
     @file_repository = FileRepository.new(@tags, @encoding, @temporary_directory)
@@ -237,7 +237,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
         # The output should stop accepting new events coming in, since it cannot do anything with them anymore.
         # Log the error and rethrow it.
       rescue Errno::ENOSPC => e
-        @logger.error("S3: No space left in temporary directory", :temporary_directory => @temporary_directory)
+        @logger.error("COS: No space left in temporary directory", :temporary_directory => @temporary_directory)
         raise e
       end
     end
@@ -252,7 +252,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
     @logger.debug("Uploading current workspace")
 
     # The plugin has stopped receiving new events, but we still have
-    # data on disk, lets make sure it get to S3.
+    # data on disk, lets make sure it get to COS.
     # If Logstash get interrupted, the `restore_from_crash` (when set to true) method will pickup
     # the content in the temporary directly and upload it.
     # This will block the shutdown until all upload are done or the use force quit.
@@ -280,14 +280,14 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
     {
       :acl => @canned_acl,
       :server_side_encryption => @server_side_encryption ? @server_side_encryption_algorithm : nil,
-      :ssekms_key_id => @server_side_encryption_algorithm == "aws:kms" ? @ssekms_key_id : nil,
+      :ssekms_key_id => @server_side_encryption_algorithm == "tencent:kms" ? @ssekms_key_id : nil,
       :storage_class => @storage_class,
       :content_encoding => @encoding == "gzip" ? "gzip" : nil
     }
   end
 
   private
-  # We start a task in the background for check for stale files and make sure we rotate them to S3 if needed.
+  # We start a task in the background for check for stale files and make sure we rotate them to COS if needed.
   def start_periodic_check
     @logger.debug("Start periodic rotation check")
 
@@ -304,22 +304,23 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
     @periodic_check.shutdown
   end
 
-  def bucket_resource
-    s3 = Aws::S3::Client.new(
-      :access_key_id => 'AKIDgFgFj4bSobJ2e8Lgq7JK9nFcsyESoVKB',
-      :secret_access_key => 'rX2MTlOvO3mVMwAKWlt8JWh9i0KZgE7E',
-      :region => 'guangzhou',
-      :endpoint => 'https://alpha-1255669336.cos.ap-guangzhou.myqcloud.com',
-      :force_path_style => true
+  def s3
+    Aws::S3::Client.new(
+        :access_key_id => @access_key_id,
+        :secret_access_key => @secret_access_key,
+        :region => @region,
+        :endpoint => "https://#{bucket}.cos.#{@region}.myqcloud.com",
+        :force_path_style => true
     )
+  end
 
+  def bucket_resource
     resource = Aws::S3::Resource.new(client: s3)
-    resource.bucket('alpha-1255669336') 
-    #Aws::S3::Bucket.new(@bucket, full_options)
+    resource.bucket(@bucket) 
   end
 
   def aws_service_endpoint(region)
-    { :s3_endpoint => "alpha-1255669336.cos.ap-guangzhou.myqcloud.com"}
+    { :s3_endpoint => "https://#{@bucket}.cos.#{@region}.myqcloud.com"}
   end
 
   def rotate_if_needed(prefixes)

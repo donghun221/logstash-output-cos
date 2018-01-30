@@ -5,7 +5,7 @@ require "fileutils"
 
 module LogStash
   module Outputs
-    class S3
+    class COS
       class WriteBucketPermissionValidator
         attr_reader :logger
 

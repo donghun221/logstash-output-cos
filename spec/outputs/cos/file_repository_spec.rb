@@ -1,10 +1,10 @@
 # encoding: utf-8
-require "logstash/outputs/s3"
+require "logstash/outputs/cos"
 require "stud/temporary"
 require "fileutils"
 require_relative "../../spec_helper"
 
-describe LogStash::Outputs::S3::FileRepository do
+describe LogStash::Outputs::COS::FileRepository do
   let(:tags) { ["secret", "service"] }
   let(:encoding) { "none" }
   let(:temporary_directory) { Stud::Temporary.pathname }
@@ -18,7 +18,7 @@ describe LogStash::Outputs::S3::FileRepository do
 
   it "returns a temporary file" do
     subject.get_file(prefix_key) do |file|
-      expect(file).to be_kind_of(LogStash::Outputs::S3::TemporaryFile)
+      expect(file).to be_kind_of(LogStash::Outputs::COS::TemporaryFile)
     end
   end
 
@@ -64,7 +64,7 @@ describe LogStash::Outputs::S3::FileRepository do
 
   it "allows to get the file factory for a specific prefix" do
     subject.get_factory(prefix_key) do |factory|
-      expect(factory).to be_kind_of(LogStash::Outputs::S3::TemporaryFileFactory)
+      expect(factory).to be_kind_of(LogStash::Outputs::COS::TemporaryFileFactory)
     end
   end
 
@@ -111,7 +111,7 @@ describe LogStash::Outputs::S3::FileRepository do
 end
 
 
-describe LogStash::Outputs::S3::FileRepository::PrefixedValue do
+describe LogStash::Outputs::COS::FileRepository::PrefixedValue do
   let(:factory) { spy("factory", :current => file) }
   subject { described_class.new(factory, 1) }
 

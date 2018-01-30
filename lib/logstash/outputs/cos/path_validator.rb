@@ -1,7 +1,7 @@
 # encoding: utf-8
 module LogStash
   module Outputs
-    class S3
+    class COS
       class PathValidator
         INVALID_CHARACTERS = "\^`><"
 

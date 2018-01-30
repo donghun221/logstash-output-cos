@@ -1,11 +1,11 @@
 # Encoding: utf-8
 require "logstash/devutils/rspec/spec_helper"
-require "logstash/outputs/s3/uploader"
-require "logstash/outputs/s3/temporary_file"
+require "logstash/outputs/cos/uploader"
+require "logstash/outputs/cos/temporary_file"
 require "aws-sdk"
 require "stud/temporary"
 
-describe LogStash::Outputs::S3::Uploader do
+describe LogStash::Outputs::COS::Uploader do
   let(:logger) { spy(:logger ) }
   let(:max_upload_workers) { 1 }
   let(:bucket_name) { "foobar-bucket" }
@@ -25,7 +25,7 @@ describe LogStash::Outputs::S3::Uploader do
   end
 
   let(:file) do
-    f = LogStash::Outputs::S3::TemporaryFile.new(key, temporary_file, temporary_directory)
+    f = LogStash::Outputs::COS::TemporaryFile.new(key, temporary_file, temporary_directory)
     f.write("random content")
     f.fsync
     f
