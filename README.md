@@ -4,7 +4,7 @@
 
 This is a plugin for [Logstash](https://github.com/elastic/logstash).
 
-It is fully free and fully open source. The license is Apache 2.0, meaning you are pretty much free to use it however you want in whatever way.
+It is fully free and fully open source. 
 
 ## Documentation
 
@@ -15,7 +15,7 @@ Logstash provides infrastructure to automatically generate documentation for thi
 
 ## Need Help?
 
-Need help? Try #logstash on freenode IRC or the https://discuss.elastic.co/c/logstash discussion forum.
+Need help? Try to contact Tencent Cloud Object Storage team.
 
 ## Developing
 
