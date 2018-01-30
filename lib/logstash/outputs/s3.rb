@@ -313,7 +313,7 @@ class LogStash::Outputs::S3 < LogStash::Outputs::Base
       :force_path_style => true
     )
 
-    resource = Aws::S3::Resource.new(s3: s3)
+    resource = Aws::S3::Resource.new(client: s3)
     resource.bucket('alpha-1255669336') 
     #Aws::S3::Bucket.new(@bucket, full_options)
   end
